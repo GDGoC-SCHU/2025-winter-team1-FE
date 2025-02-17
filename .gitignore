@@ -39,3 +39,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Node.js 관련 파일
+node_modules/
+npm-debug.log
+package-lock.json
+
+# 환경 변수 파일 (API 키 보호)
+.env.local
+
+# 빌드 결과물
+dist/
+out/
+.next/
+
+# IDE 관련 파일
+.idea/
+.vscode/
+
+# OS 관련 파일
+.DS_Store
+
