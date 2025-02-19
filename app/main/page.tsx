@@ -25,16 +25,12 @@ export default function Home() {
   }, []);
 
   // ✅ 회원가입 API 호출
-  const handleSignup = async (e) => {
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const formData = new FormData(e.target as HTMLFormElement);
     const userData = {
-      username: formData.get("username"),
+      userid: formData.get("userid"),
       password: formData.get("password"),
-      nickname: formData.get("nickname"),
-      statusMessage: formData.get("statusMessage"),
-      organization: formData.get("organization"),
-      email: formData.get("email"),
     };
 
     try {
@@ -58,11 +54,11 @@ export default function Home() {
   };
 
   // ✅ 로그인 API 호출
-  const handleLogin = async (e) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
+    const formData = new FormData(e.target as HTMLFormElement);
     const credentials = {
-      username: formData.get("username"),
+      userid: formData.get("userid"),
       password: formData.get("password"),
     };
 
@@ -205,7 +201,7 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-center">로그인</h2>
             <form onSubmit={handleLogin}>
               <input
-                name="username"
+                name="userid"
                 type="text"
                 placeholder="아이디"
                 className="border w-full p-2 mt-2 bg-gray-800 text-white"
@@ -240,39 +236,15 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-center">회원가입</h2>
             <form onSubmit={handleSignup}>
               <input
-                name="username"
+                name="userid"
                 type="text"
                 placeholder="아이디"
-                className="border w-full p-2 mt-2 bg-gray-800 text-white"
-              />
-              <input
-                name="nickname"
-                type="text"
-                placeholder="닉네임"
-                className="border w-full p-2 mt-2 bg-gray-800 text-white"
-              />
-              <input
-                name="statusMessage"
-                type="text"
-                placeholder="상태 메시지"
                 className="border w-full p-2 mt-2 bg-gray-800 text-white"
               />
               <input
                 name="password"
                 type="password"
                 placeholder="비밀번호"
-                className="border w-full p-2 mt-2 bg-gray-800 text-white"
-              />
-              <input
-                name="organization"
-                type="text"
-                placeholder="학교/회사 또는 소속"
-                className="border w-full p-2 mt-2 bg-gray-800 text-white"
-              />
-              <input
-                name="email"
-                type="email"
-                placeholder="이메일"
                 className="border w-full p-2 mt-2 bg-gray-800 text-white"
               />
               <button

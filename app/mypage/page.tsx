@@ -3,15 +3,9 @@
 import { useState, useEffect } from "react";
 
 export default function MyPage() {
-  const [username, setUsername] = useState("");
   const [userId, setUserId] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
-  const [schoolInfo, setSchoolInfo] = useState("");
-  const [signupDate, setSignupDate] = useState("");
   const [solvedProblems, setSolvedProblems] = useState(0);
   const [totalProblems, setTotalProblems] = useState(0);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isPasswordOpen, setPasswordOpen] = useState(false);
   const [isDeleteOpen, setDeleteOpen] = useState(false);
 
   // ✅ 로그인된 사용자 정보 & 문제 풀이 현황 가져오기
@@ -20,12 +14,11 @@ export default function MyPage() {
 
     if (!token) {
       alert("로그인이 필요합니다.");
-      window.location.href = "/login";
+      window.location.href = "/maqin";
       return;
     }
 
     fetch("http://192.168.219.100:8080/api/auth/me", {
-      // ✅ 백엔드 포트 8080으로 변경
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -44,11 +37,7 @@ export default function MyPage() {
       })
       .then((data) => {
         console.log("사용자 정보:", data);
-        setUsername(data.username);
         setUserId(data.id);
-        setStatusMessage(data.statusMessage || "");
-        setSchoolInfo(data.schoolInfo || "");
-        setSignupDate(data.signupDate || "");
         setSolvedProblems(data.solvedProblems || 0);
         setTotalProblems(data.totalProblems || 0);
       })
@@ -59,11 +48,12 @@ export default function MyPage() {
         window.location.href = "/login";
       });
   }, []);
+
   // ✅ 로그아웃
   const handleLogout = () => {
     const token = localStorage.getItem("token");
 
-    fetch("/api/auth/logout", {
+    fetch("http://192.168.219.100:8080/api/auth/logout", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -81,7 +71,7 @@ export default function MyPage() {
   const handleDeleteAccount = () => {
     const token = localStorage.getItem("token");
 
-    fetch("/api/auth/delete-user", {
+    fetch("http://192.168.219.100:8080/api/auth/delete-user", {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -103,61 +93,7 @@ export default function MyPage() {
     <div className="min-h-screen bg-black text-white flex flex-col items-center p-6">
       <h1 className="text-5xl font-bold mb-6">사이트명</h1>
 
-      {/* 프로필 카드 */}
-      <div className="bg-gray-900 p-6 rounded-lg shadow-md w-full max-w-md text-center">
-        <div className="flex justify-center mb-4">
-          <img
-            src="/profile-icon.png"
-            alt="Profile"
-            className="w-16 h-16 rounded-full"
-          />
-        </div>
-        <div className="text-lg font-semibold">
-          {username} ({userId})
-        </div>
-        <div className="text-gray-400 text-sm mb-2">
-          회원가입일: {signupDate}
-        </div>
-        <div className="text-gray-300 text-sm mb-4">
-          맞춘 문제 수: {solvedProblems}문제
-        </div>
-
-        {isEditing ? (
-          <>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="border w-full p-2 rounded-md mb-2 text-center bg-gray-800 text-white"
-            />
-            <input
-              type="text"
-              value={statusMessage}
-              onChange={(e) => setStatusMessage(e.target.value)}
-              className="border w-full p-2 rounded-md mb-4 text-center bg-gray-800 text-white"
-            />
-            <button
-              onClick={() => setIsEditing(false)}
-              className="bg-green-500 text-white px-4 py-2 rounded-md w-full"
-            >
-              저장
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="text-gray-300 mb-2">{statusMessage}</div>
-            <div className="text-gray-400 text-sm">{schoolInfo}</div>
-            <button
-              onClick={() => setIsEditing(true)}
-              className="bg-gray-700 text-white px-4 py-2 rounded-md w-full mt-4"
-            >
-              수정
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* ✅ 문제 풀이 현황 유지 */}
+      {/* 문제 풀이 현황 */}
       <div className="bg-gray-900 p-6 rounded-lg shadow-md w-full max-w-md mt-6 text-center">
         <h2 className="text-xl font-bold mb-4">문제 풀이 현황</h2>
         <p className="text-lg mb-2">
@@ -189,36 +125,6 @@ export default function MyPage() {
           회원 탈퇴
         </button>
       </div>
-
-      {/* 회원 탈퇴 팝업 */}
-      {isDeleteOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-gray-900 p-6 rounded-md w-96 text-white relative text-center">
-            <button
-              onClick={() => setDeleteOpen(false)}
-              className="absolute top-2 right-2 text-white text-2xl"
-            >
-              ×
-            </button>
-            <h2 className="text-2xl font-bold mb-4">회원 탈퇴</h2>
-            <p className="mb-4">
-              정말로 회원 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
-            </p>
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full bg-red-500 text-white py-2 rounded-md mb-2"
-            >
-              회원 탈퇴
-            </button>
-            <button
-              onClick={() => setDeleteOpen(false)}
-              className="w-full bg-gray-700 text-white py-2 rounded-md"
-            >
-              취소
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

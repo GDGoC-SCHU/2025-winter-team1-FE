@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 interface Problem {
@@ -16,71 +16,81 @@ export default function MyProblems() {
   const [profileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
   const [isLoggedIn, setLoggedIn] = useState<boolean>(true);
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
+  const [problems, setProblems] = useState<Problem[]>([]);
   const router = useRouter();
 
-  const problems: Problem[] = [
-    {
-      id: 1,
-      level: "왕초급",
-      language: "파이썬",
-      status: "성공",
-      problem: "문제 1 내용",
-      correctAnswer: "정답 1",
-    },
-    {
-      id: 2,
-      level: "초급",
-      language: "자바",
-      status: "보류",
-      problem: "문제 2 내용",
-      correctAnswer: "정답 2",
-    },
-    {
-      id: 3,
-      level: "중급",
-      language: "C언어",
-      status: "성공",
-      problem: "문제 3 내용",
-      correctAnswer: "정답 3",
-    },
-  ];
+  // ✅ 문제 데이터 백엔드에서 불러오기
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      window.location.href = "/log1in";
+      return;
+    }
+
+    fetch("http://192.168.219.100:8080/api/problems/my", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(
+            `API 오류: ${res.status} - ${
+              errorData.message || "알 수 없는 오류"
+            }`
+          );
+        }
+        return res.json();
+      })
+      .then((data) => {
+        console.log("문제 목록:", data);
+        setProblems(data);
+      })
+      .catch((error) => {
+        console.error("문제 데이터 가져오기 실패:", error);
+        alert("문제를 불러올 수 없습니다. 다시 시도해 주세요.");
+      });
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col text-lg">
       <header className="w-full p-6 bg-gray-900 shadow-md flex justify-between items-center text-xl">
         <h1 className="text-5xl font-bold text-center flex-1">사이트명</h1>
-        <div className="flex items-center">
-          {isLoggedIn && (
-            <div className="relative">
-              <button onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
-                <img
-                  src="/profile-icon.png"
-                  alt="Profile"
-                  className="w-10 h-10 rounded-full"
-                />
+        <div className="relative">
+          <button onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
+            <img
+              src="/profile-icon.png"
+              alt="Profile"
+              className="w-10 h-10 rounded-full"
+            />
+          </button>
+          {profileMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-gray-800 shadow-md rounded-md p-2">
+              <button
+                onClick={() => router.push("/mypage")}
+                className="block w-full text-left px-4 py-2 text-white"
+              >
+                마이페이지
               </button>
-              {profileMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 shadow-md rounded-md p-2">
-                  <button
-                    onClick={() => router.push("/mypage")}
-                    className="block w-full text-left px-4 py-2 text-white"
-                  >
-                    마이페이지
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-white">
-                    설정
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLoggedIn(false);
-                      router.push("/main");
-                    }}
-                    className="block w-full text-left px-4 py-2 text-red-500"
-                  >
-                    로그아웃
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => router.push("/settings")}
+                className="block w-full text-left px-4 py-2 text-white"
+              >
+                설정
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  router.push("/login");
+                }}
+                className="block w-full text-left px-4 py-2 text-red-500"
+              >
+                로그아웃
+              </button>
             </div>
           )}
         </div>
@@ -130,27 +140,6 @@ export default function MyProblems() {
           </table>
         </div>
       </main>
-
-      {/* 성공한 문제 팝업 */}
-      {selectedProblem && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-gray-900 p-6 rounded-md w-96 text-white relative">
-            <button
-              onClick={() => setSelectedProblem(null)}
-              className="absolute top-2 right-2 text-white text-2xl"
-            >
-              ×
-            </button>
-            <h2 className="text-2xl font-bold text-center">문제 상세</h2>
-            <p className="mt-4">
-              <strong>문제:</strong> {selectedProblem.problem}
-            </p>
-            <p className="mt-4 text-green-400">
-              <strong>정답:</strong> {selectedProblem.correctAnswer}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

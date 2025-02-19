@@ -17,58 +17,102 @@ export default function ProblemPage() {
   const [problem, setProblem] = useState("이곳에 문제가 표시됩니다.");
   const [answer, setAnswer] = useState("");
   const [correctAnswer, setCorrectAnswer] = useState("정답 예제");
-  const [resultPopup, setResultPopup] = useState(null);
+  const [resultPopup, setResultPopup] = useState<"correct" | "wrong" | null>(
+    null
+  );
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
   const router = useRouter();
+  const userId = "testUser"; // 실제 로그인 사용자의 ID 사용 필요
 
   useEffect(() => {
     setSelectedLevel(searchParams.get("level") || "왕초급");
     setSelectedLanguage(searchParams.get("language") || "파이썬");
   }, [searchParams]);
 
+  // 문제 불러오기
   const fetchNewProblem = async () => {
-    setResultPopup(null); // 팝업 닫기
-    setShowCorrectAnswer(false); // 정답보기 초기화
-    const response = await fetch("/api/generate-problem", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        level: selectedLevel,
-        language: selectedLanguage,
-      }),
-    });
-    const data = await response.json();
-    setProblem(data.problem);
-    setCorrectAnswer(data.correctAnswer);
-    setAnswer("");
+    setResultPopup(null);
+    setShowCorrectAnswer(false);
+    try {
+      const response = await fetch("/api/generate-problem", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          level: selectedLevel,
+          language: selectedLanguage,
+        }),
+      });
+      const data = await response.json();
+      setProblem(data.problem || "문제를 불러오지 못했습니다.");
+      setCorrectAnswer(data.correctAnswer || "");
+      setAnswer("");
+    } catch (error) {
+      console.error("문제를 불러오는 중 오류 발생:", error);
+      alert("문제를 불러오는 중 오류가 발생했습니다.");
+    }
   };
-  const handleSubmit = () => {
+
+  // 문제 제출 시 결과 저장
+  const handleSubmit = async () => {
     if (!correctAnswer) {
       alert("정답이 로드되지 않았습니다. 다시 시도해주세요.");
       return;
     }
-    if (answer.trim() === correctAnswer.trim()) {
-      setResultPopup("correct");
-    } else {
-      setResultPopup("wrong");
+    const isCorrect = answer.trim() === correctAnswer.trim();
+    setResultPopup(isCorrect ? "correct" : "wrong");
+
+    try {
+      await fetch("/api/save-problem-result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          problem,
+          answer,
+          correctAnswer,
+          status: isCorrect ? "correct" : "wrong",
+          userId,
+        }),
+      });
+    } catch (error) {
+      console.error("문제 결과 저장 중 오류 발생:", error);
     }
   };
 
-  const handleHoldProblem = () => {
+  // 문제 보류 시 결과 저장
+  const handleHoldProblem = async () => {
     alert("문제가 보류되었습니다.");
+    try {
+      await fetch("/api/save-problem-result", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          problem,
+          answer: "",
+          correctAnswer,
+          status: "hold",
+          userId,
+        }),
+      });
+    } catch (error) {
+      console.error("문제 보류 저장 중 오류 발생:", error);
+    }
     fetchNewProblem();
   };
 
   const closePopup = () => {
     setResultPopup(null);
-    setShowCorrectAnswer(false); // 팝업 닫을 때 정답 보기 초기화
+    setShowCorrectAnswer(false);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center p-6">
-      {/* 헤더 */}
+    <div className="min-h-screen bg-black text-white flex flex-col text-lg">
+      {/* 헤더 영역 */}
       <header className="w-full p-6 bg-gray-900 shadow-md flex justify-between items-center text-xl">
         <h1 className="text-5xl font-bold text-center flex-1">사이트명</h1>
         <div className="flex items-center">
@@ -88,9 +132,6 @@ export default function ProblemPage() {
                     className="block w-full text-left px-4 py-2 text-white"
                   >
                     마이페이지
-                  </button>
-                  <button className="block w-full text-left px-4 py-2 text-white">
-                    설정
                   </button>
                   <button
                     onClick={() => {
@@ -186,7 +227,7 @@ export default function ProblemPage() {
               </button>
             )}
             <button
-              onClick={() => fetchNewProblem()}
+              onClick={fetchNewProblem}
               className="bg-blue-500 p-2 rounded-md"
             >
               다른 문제 풀기
