@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 
 export default function ProblemPage() {
   const searchParams = useSearchParams();
-  const [selectedLevel, setSelectedLevel] = useState(
-    searchParams.get("level") || "왕초급"
-  );
-  const [selectedLanguage, setSelectedLanguage] = useState(
-    searchParams.get("language") || "파이썬"
-  );
+  const router = useRouter();
+
+  // ✅ URL 쿼리스트링에서 level과 language 값을 가져오기
+  const selectedLevel = searchParams.get("level") || "왕초급";
+  const selectedLanguage = searchParams.get("language") || "파이썬";
+
   const [isLoggedIn, setLoggedIn] = useState(true);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [problem, setProblem] = useState("이곳에 문제가 표시됩니다.");
@@ -21,40 +21,52 @@ export default function ProblemPage() {
     null
   );
   const [showCorrectAnswer, setShowCorrectAnswer] = useState(false);
-  const router = useRouter();
-  const userId = "testUser"; // 실제 로그인 사용자의 ID 사용 필요
+  const userId = "testUser"; // ✅ 실제 로그인 사용자 ID 필요
 
+  // ✅ `selectedLevel`과 `selectedLanguage`가 변경될 때 자동으로 문제 가져오기
   useEffect(() => {
-    setSelectedLevel(searchParams.get("level") || "왕초급");
-    setSelectedLanguage(searchParams.get("language") || "파이썬");
-  }, [searchParams]);
+    fetchNewProblem();
+  }, [selectedLevel, selectedLanguage]);
 
-  // 문제 불러오기
+  // ✅ 문제 불러오기 함수
   const fetchNewProblem = async () => {
     setResultPopup(null);
     setShowCorrectAnswer(false);
+    console.log("📡 Fetching problem for:", selectedLevel, selectedLanguage);
+
     try {
-      const response = await fetch("/api/generate-problem", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          level: selectedLevel,
-          language: selectedLanguage,
-        }),
-      });
+      const response = await fetch(
+        "http://localhost:8080/api/gemini/generate-and-predict",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            level: selectedLevel,
+            language: selectedLanguage,
+          }),
+        }
+      );
+
       const data = await response.json();
-      setProblem(data.problem || "문제를 불러오지 못했습니다.");
-      setCorrectAnswer(data.correctAnswer || "");
+      console.log("✅ Response data:", data); // API 응답 로그 추가
+
+      if (data.error) {
+        setProblem("문제를 불러오지 못했습니다.");
+        return;
+      }
+
+      setProblem(data.문제 || "문제를 불러오지 못했습니다.");
+      setCorrectAnswer(data.답 || "");
       setAnswer("");
     } catch (error) {
-      console.error("문제를 불러오는 중 오류 발생:", error);
+      console.error("🚨 문제를 불러오는 중 오류 발생:", error);
       alert("문제를 불러오는 중 오류가 발생했습니다.");
     }
   };
 
-  // 문제 제출 시 결과 저장
+  // ✅ 정답 제출
   const handleSubmit = async () => {
     if (!correctAnswer) {
       alert("정답이 로드되지 않았습니다. 다시 시도해주세요.");
@@ -64,7 +76,7 @@ export default function ProblemPage() {
     setResultPopup(isCorrect ? "correct" : "wrong");
 
     try {
-      await fetch("/api/save-problem-result", {
+      await fetch("http://localhost:8080/api/save-problem-result", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -78,31 +90,8 @@ export default function ProblemPage() {
         }),
       });
     } catch (error) {
-      console.error("문제 결과 저장 중 오류 발생:", error);
+      console.error("🚨 문제 결과 저장 중 오류 발생:", error);
     }
-  };
-
-  // 문제 보류 시 결과 저장
-  const handleHoldProblem = async () => {
-    alert("문제가 보류되었습니다.");
-    try {
-      await fetch("/api/save-problem-result", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          problem,
-          answer: "",
-          correctAnswer,
-          status: "hold",
-          userId,
-        }),
-      });
-    } catch (error) {
-      console.error("문제 보류 저장 중 오류 발생:", error);
-    }
-    fetchNewProblem();
   };
 
   const closePopup = () => {
@@ -187,6 +176,7 @@ export default function ProblemPage() {
         </div>
       </main>
 
+      {/* 정답 결과 모달 */}
       {resultPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-gray-900 p-6 rounded-md w-96 text-white text-center relative flex flex-col space-y-4">
@@ -203,9 +193,9 @@ export default function ProblemPage() {
               <>
                 <button
                   onClick={() => setShowCorrectAnswer(!showCorrectAnswer)}
-                  className="bg-gray-700 p-2 rounded-md"
+                  className="bg-gray-700 p-2 rounded-md transition-all duration-200 hover:bg-gray-600"
                 >
-                  정답 보기
+                  {showCorrectAnswer ? "정답 숨기기" : "정답 보기"}
                 </button>
                 {showCorrectAnswer && (
                   <p className="mt-4 text-green-400">정답: {correctAnswer}</p>
@@ -213,22 +203,20 @@ export default function ProblemPage() {
               </>
             )}
             <button
-              onClick={() => router.push("/main")}
-              className="bg-purple-500 p-2 rounded-md"
+              onClick={() => {
+                closePopup();
+                router.push("/main");
+              }}
+              className="bg-purple-500 p-2 rounded-md transition-all duration-200 hover:bg-purple-600"
             >
               메인으로 가기
             </button>
-            {resultPopup === "wrong" && (
-              <button
-                onClick={handleHoldProblem}
-                className="bg-yellow-500 p-2 rounded-md"
-              >
-                보류하기
-              </button>
-            )}
             <button
-              onClick={fetchNewProblem}
-              className="bg-blue-500 p-2 rounded-md"
+              onClick={() => {
+                closePopup();
+                fetchNewProblem();
+              }}
+              className="bg-blue-500 p-2 rounded-md transition-all duration-200 hover:bg-blue-600"
             >
               다른 문제 풀기
             </button>
